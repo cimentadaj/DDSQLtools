@@ -112,7 +112,8 @@
                             <span class="kw">locAreaTypeIds</span> <span class="kw">=</span> <span class="fl">2</span>,
                             <span class="kw">subGroupIds</span> <span class="kw">=</span> <span class="fl">2</span>,
                             <span class="kw">isComplete</span> <span class="kw">=</span> <span class="fl">0</span>)</pre></body></html></div>
-<p>Note that <strong>using numeric codes is faster than using string names because we don’t have to make code translations behind the scenes</strong> (if you’re unsure what these codes mean, please refer to the section <code>Exploring the UNPD SQL API from R</code> below). Here are a few other examples:</p>
+<p>Note that <strong>using numeric codes is faster than using string names because we don’t have to make code translations behind the scenes</strong> (if you’re unsure what these codes mean, please refer to the section <code>Exploring the UNPD SQL API from R</code> below). If you want to figure out which names to use, each of these arguments has an equivalent lookup function. For example, for figuring out the possible values in <code>locIds</code>, use <code><a href="../reference/get_locations.html">get_locations()</a></code>. You can see all arguments and their equivalent lookup functions in the documentation of <code><a href="../reference/get_recorddata.html">?get_recorddata</a></code>. Do note that these lookup functions have both the <code>'Name'</code> and a <code>'ShortName'</code> of each value. The translation will only accept string names from the <code>'Name'</code> column.</p>
+<p>Here are a few other examples:</p>
 <div id="population-by-age-and-sex-with-census-data" class="section level4">
 <h4 class="hasAnchor">
 <a href="#population-by-age-and-sex-with-census-data" class="anchor"></a>Population by age and sex with census data</h4>
