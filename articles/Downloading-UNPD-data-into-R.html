@@ -863,10 +863,7 @@
 <span class="co">#&gt; [1] "http://24.239.36.16:9654/un3/api/indicatortypes?"</span>
 <span class="co">#&gt; [1] "http://24.239.36.16:9654/un3/api/subgroups?"</span>
 <span class="co">#&gt; [1] "http://24.239.36.16:9654/un3/api/locareatypes?indicatorTypeIds=20&amp;isComplete=0&amp;locIds=512"</span>
-<span class="co">#&gt; Warning in file(con, "r"): cannot open URL 'http://24.239.36.16:9654/un3/api/</span>
-<span class="co">#&gt; locareatypes?indicatorTypeIds=20&amp;isComplete=0&amp;locIds=512': HTTP status was '500</span>
-<span class="co">#&gt; Internal Server Error'</span>
-<span class="co">#&gt; Error in file(con, "r"): cannot open the connection to 'http://24.239.36.16:9654/un3/api/locareatypes?indicatorTypeIds=20&amp;isComplete=0&amp;locIds=512'</span></pre></body></html></div>
+<span class="co">#&gt; Error in fun(vec, ...): Area Type(s) 'Semi-rural' not found. Check get_locationtypes()</span></pre></body></html></div>
 <p>This error is just saying that the combination of data that you’ve specified is not available (in this case, <code>Semi-rural</code> is not available for register data on deaths by age and sex in <code>Oman</code> for all groups abridged).</p>
 <p>Figuring out which specific set of values returns what the user want is a tedious process. If the user doesn’t know the specific combination of values by memory, the most optimal strategy that we advise is to explore the available values in the <a href="http://24.239.36.16:9654/un3/Web/index.html">front end of the API</a> and then use these in the request.</p>
 <p>Let’s do one example. Follow the hyperlink and click on <code>"Get Started - Select Indicator &amp; Country"</code>. Then select <code>"Deaths by age and sex"</code> -&gt; <code>"Oman"</code>. All possible datasets for <code>Oman</code> and <code>"Deaths by age and sex"</code> will appear automatically. We can filter down the options in the left-most menu and use these values to populate our <code>get_recorddata</code> call.</p>
