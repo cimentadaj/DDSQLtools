@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Get information about available indicators (IndicatorTypeID) — get_indicatortypes • DDSQLtools</title>
+<title>Get information about available types of data processes (DataProcessTypeID) — get_dataprocesstype • DDSQLtools</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="Get information about available indicators (IndicatorTypeID) — get_indicatortypes" />
-<meta property="og:description" content="Get information about available indicators (IndicatorTypeID)" />
+<meta property="og:title" content="Get information about available types of data processes (DataProcessTypeID) — get_dataprocesstype" />
+<meta property="og:description" content="Get information about available types of data processes (DataProcessTypeID)" />
 
 
 
@@ -120,16 +120,16 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Get information about available indicators (IndicatorTypeID)</h1>
+    <h1>Get information about available types of data processes (DataProcessTypeID)</h1>
     <small class="dont-index">Source: <a href='https://github.com/timriffe/DDSQLtools/blob/master/R/GetInformation.R'><code>R/GetInformation.R</code></a></small>
-    <div class="hidden name"><code>get_indicatortypes.Rd</code></div>
+    <div class="hidden name"><code>get_dataprocesstype.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Get information about available indicators (IndicatorTypeID)</p>
+    <p>Get information about available types of data processes (DataProcessTypeID)</p>
     </div>
 
-    <pre class="usage"><span class='fu'>get_indicatortypes</span><span class='op'>(</span>save_file <span class='op'>=</span> <span class='cn'>FALSE</span>, <span class='va'>...</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>get_dataprocesstype</span><span class='op'>(</span>save_file <span class='op'>=</span> <span class='cn'>FALSE</span>, <span class='va'>...</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -153,8 +153,8 @@ parameters for each endpoint at http://24.239.36.16:9654/un3/swagger/ui/index#!/
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='va'>I</span> <span class='op'>&lt;-</span> <span class='fu'>get_indicatortypes</span><span class='op'>(</span>addDefault <span class='op'>=</span> <span class='st'>"false"</span><span class='op'>)</span>
-<span class='va'>I</span><span class='op'>[</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"PK_IndicatorTypeID"</span>, <span class='st'>"Name"</span>, <span class='st'>"ShortName"</span><span class='op'>)</span><span class='op'>]</span>
+<span class='va'>D</span> <span class='op'>&lt;-</span> <span class='fu'>get_dataprocesstype</span><span class='op'>(</span><span class='op'>)</span>
+<span class='va'>D</span><span class='op'>[</span>, <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"PK_DataProcessTypeID"</span>, <span class='st'>"Name"</span>, <span class='st'>"ShortName"</span><span class='op'>)</span><span class='op'>]</span>
 <span class='op'>}</span>
 </div></pre>
   </div>
