@@ -215,7 +215,8 @@ normalize_map <- function(type = NULL) {
   # the `ID` casing) so lookup helpers keep finding their primary-key column.
   ref_maps <- list(
     locations = c(
-      LocId = "PK_LocID"
+      LocId = "PK_LocID",
+      LocTypeId = "LocTypeID"
     ),
     indicatortypes = c(
       IndicatorTypeId = "PK_IndicatorTypeID"
@@ -230,11 +231,24 @@ normalize_map <- function(type = NULL) {
       DataProcessTypeId = "PK_DataProcessTypeID"
     ),
     dataprocesses = c(
-      DataProcessId = "PK_DataProcessID"
+      DataProcessId = "PK_DataProcessID",
+      DataProcessTypeId = "DataProcessTypeID"
     ),
     datatypes = c(
       DataTypeGroupId = "DataTypeGroupID",
       DataTypeGroupId2 = "DataTypeGroupID2"
+    ),
+    # get_datacatalog joins the reference tables above into the catalog and then
+    # selects a fixed PascalCase column set. Reconstruct the PK_ primary key,
+    # fix the `ID` casing on the merge keys (LocID, DataProcessID) and the
+    # ParentDataCatalogID output column, and keep `isSubnational` lower-cased
+    # (it is retained verbatim as an output column downstream).
+    datacatalogs = c(
+      DataCatalogId = "PK_DataCatalogID",
+      LocId = "LocID",
+      DataProcessId = "DataProcessID",
+      ParentDataCatalogId = "ParentDataCatalogID",
+      IsSubnational = "isSubnational"
     )
   )
 

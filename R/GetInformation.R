@@ -224,7 +224,6 @@ get_datacatalog <- function(save_file = FALSE, ...) {
   DataCatalog <- read_API("dataCatalogs", save_file, ...)
 
   Locations <- get_locations(
-    addDefault = "false",
     includeDependencies = "false",
     includeFormerCountries = "false"
   )
@@ -236,7 +235,7 @@ get_datacatalog <- function(save_file = FALSE, ...) {
     Name <- NULL
   })[c("LocID", "LocTypeID", "LocName")]
 
-  DataProcess <- get_dataprocess(addDefault = "false")
+  DataProcess <- get_dataprocess()
 
   DataProcess <- within(DataProcess, {
     DataProcessID <- PK_DataProcessID
@@ -247,7 +246,7 @@ get_datacatalog <- function(save_file = FALSE, ...) {
     ShortName <- NULL
   })[c("DataProcessID", "DataProcessTypeID", "DataProcess", "DataProcessShortName")]
 
-  DataProcessType <- get_dataprocesstype(addDefault = "false")
+  DataProcessType <- get_dataprocesstype()
 
   DataProcessType <- within(DataProcessType, {
     DataProcessTypeID <- PK_DataProcessTypeID
@@ -315,8 +314,10 @@ get_datacatalog <- function(save_file = FALSE, ...) {
   DataCatalog <- DataCatalog[cols_select]
 
   DataCatalog <- within(DataCatalog, {
-    FieldWorkStart <- as.Date(FieldWorkStart, format = "%m/%d/%Y")
-    FieldWorkEnd <- as.Date(FieldWorkEnd, format = "%m/%d/%Y")
+    # The new DemoData API returns ISO dates (e.g. "2023-12-31") for the
+    # field-work columns, not the legacy "%m/%d/%Y" shape.
+    FieldWorkStart <- as.Date(FieldWorkStart, format = "%Y-%m-%d")
+    FieldWorkEnd <- as.Date(FieldWorkEnd, format = "%Y-%m-%d")
   })
 
   DataCatalog <- DataCatalog[!is.na(DataCatalog$LocTypeID), ]
