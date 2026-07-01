@@ -727,11 +727,18 @@ get_recorddataadditional <- function(save_file = FALSE, verbose = TRUE, collapse
 read_API <- function(type, save_file, verbose = FALSE, ...) {
   P <- linkGenerator(type = type, verbose = verbose, ...)
 
-  # Temporary, just to check how the URL is constructed
-  cat("\n", P, "\n")
+  resp <- jsonlite::fromJSON(txt = P, flatten = TRUE, bigint_as_char = TRUE)
 
-  out <- jsonlite::fromJSON(txt = P, flatten = TRUE, bigint_as_char = TRUE)
-  ## print("URL saved")
+  # New DemoData API wraps every response in a { success, message, data, error }
+  # envelope. Surface API errors as R errors instead of letting them fall
+  # through into cryptic downstream parsing failures.
+  if (isFALSE(resp$success) || !is.null(resp$error)) {
+    stop("API error: ", resp$error$code, " - ", resp$error$message)
+  }
+
+  # Unwrap the envelope and normalize camelCase -> PascalCase / PK_ so the
+  # downstream vocabulary (col_order, id_to_fact, joins, lookups) is preserved.
+  out <- normalize_fields(resp$data, type = type)
 
   # Cleaning up columns
   out <- as.data.frame(lapply(out, trimws), stringsAsFactors = FALSE)

@@ -70,50 +70,104 @@
 #' L5
 #' }
 #' @keywords internal
-linkGenerator <- function(server = getOption("unpd_server", "https://popdiv.dfs.un.org/DemoData/api/"),
+linkGenerator <- function(server = getOption("unpd_server", "https://population.un.org/demodata-api/api/"),
                           type,
                           verbose,
                           ...) {
   types <- c(
     "ages",
     "openAges",
-    "Component",
-    "DataCatalogs",
+    "component",
+    "dataCatalogs",
     "dataProcessTypes",
     "dataProcesses",
-    "DataReliability",
-    "DataSources",
-    "DataSourceStatus",
-    "DataSourceTypes",
-    "DataStatus",
-    "DataTypes",
-    "DefaultKeys",
-    "Indicators",
-    "Indicatortypes",
-    "IndicatorIndicatortypes",
+    "dataReliability",
+    "dataSources",
+    "dataSourceStatus",
+    "dataSourceTypes",
+    "dataStatus",
+    "dataTypes",
+    "defaultKeys",
+    "indicators",
+    "indicatorTypes",
+    "indicatorIndicatorTypes",
     "locAreaTypes",
-    "Locations",
-    "PeriodGroups",
-    "PeriodTypes",
-    "Sex",
-    "StatisticalConcepts",
-    "StructuredData",
-    "StructuredDataTable",
-    "StructuredDataRecords",
+    "locations",
+    "periodGroups",
+    "periodTypes",
+    "sex",
+    "statisticalConcepts",
+    "structuredData",
+    "structuredDataTable",
+    "structuredDataRecords",
     "structuredDataRecordsAdditional",
-    "StructuredDataSeries",
+    "structuredDataSeries",
     "structuredDataCriteria",
     "subGroups",
-    "SubGroupTypes",
-    "TimeReferences",
+    "subGroupTypes",
+    "timeReferences",
     # These are within UserUtility
     "dataEntryCount"
   )
 
-  type <- match.arg(tolower(type), choices = tolower(types))
+  idx <- match.arg(tolower(type), choices = tolower(types))
+  type <- types[match(idx, tolower(types))] # emit canonical camelCase route
   query <- build_filter(..., verbose = verbose)
   link <- utils::URLencode(paste0(server, type, query))
   link
+}
+
+
+#' Normalize new DemoData API field names to the legacy vocabulary
+#'
+#' The new DemoData API (\code{population.un.org/demodata-api/api}) returns
+#' camelCase field names with no \code{PK_} prefix, whereas the downstream code
+#' (\code{col_order}, \code{id_to_fact}, the \code{get_datacatalog} joins, and the
+#' lookup helpers) expects the legacy PascalCase / \code{PK_}-prefixed vocabulary.
+#' This function is the single normalization point, called from
+#' \code{\link{read_API}} immediately after the response envelope is unwrapped.
+#'
+#' The shim is endpoint-aware (keyed on \code{type}) because the same camelCase
+#' field must map differently depending on the endpoint (e.g. \code{locId} becomes
+#' \code{PK_LocID} on reference endpoints but \code{LocID} on records). The
+#' explicit per-endpoint rename maps are filled in later phases; this scaffold
+#' implements the generic leading-character capitalization used as the default.
+#'
+#' @param data A \code{data.frame} (the unwrapped \code{$data} element of the API
+#' response envelope).
+#' @param type The canonical camelCase endpoint route the data came from.
+#'
+#' @return A \code{data.frame} with normalized column names.
+#'
+#' @keywords internal
+normalize_fields <- function(data, type = NULL) {
+  data <- as.data.frame(data, stringsAsFactors = FALSE)
+
+  if (ncol(data) == 0) {
+    return(data)
+  }
+
+  # Generic path: capitalize the leading character of each (dot-separated
+  # segment of each) field name. Explicit per-endpoint maps are added in
+  # later phases and take precedence over this generic transform.
+  cap_lead <- function(nm) {
+    parts <- strsplit(nm, ".", fixed = TRUE)[[1]]
+    parts <- vapply(
+      parts,
+      function(p) {
+        if (nchar(p) == 0) {
+          p
+        } else {
+          paste0(toupper(substr(p, 1, 1)), substr(p, 2, nchar(p)))
+        }
+      },
+      character(1)
+    )
+    paste(parts, collapse = ".")
+  }
+
+  names(data) <- vapply(names(data), cap_lead, character(1))
+  data
 }
 
 
