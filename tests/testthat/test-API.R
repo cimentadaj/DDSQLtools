@@ -208,6 +208,7 @@ validate_recordddata(mixed_codes) # validate
 # Check that it translates
 chr_id <-
   get_recorddataadditional(
+    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
     dataTypeGroupIds = "Direct",
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -221,6 +222,7 @@ validate_recordddata(chr_id)
 # Check that ti works with an id
 num_id <-
   get_recorddataadditional(
+    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
     dataTypeGroupIds = 3,
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -236,6 +238,7 @@ validate_recordddata(num_id)
 # Check that it translates
 chr_id <-
   get_recorddataadditional(
+    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
     dataTypeGroupId2s = "Population (sample tabulation)",
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -248,6 +251,7 @@ validate_recordddata(chr_id)
 
 num_id <-
   get_recorddataadditional(
+    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
     dataTypeGroupId2s = 11,
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -259,7 +263,7 @@ num_id <-
 validate_recordddata(num_id)
 
 # After changing the unpd server
-options(unpd_server = "https://popdiv.dfs.un.org/DemoData/api/")
+options(unpd_server = "https://population.un.org/demodata-api/api/")
 
 mixed_codes <- get_recorddata(
   dataProcessTypeIds = 2, # Census
@@ -290,7 +294,7 @@ test_that("get_recorddata returns error when setting wrong server", {
     )
   )
 
-  options(unpd_server = "https://popdiv.dfs.un.org/DemoData/api/")
+  options(unpd_server = "https://population.un.org/demodata-api/api/")
 })
 
 test_that("get_recorddata with codes gives same output with strings", {
@@ -321,23 +325,25 @@ validate_date <- function(res) {
   expect_equal(10, unique(nchar(res$TimeEnd)))
 
   # Test that the structure is 2 digits / 2 digits / 4 digits
-  expect_true(all(grepl("[0-9]{2}/[0-9]{2}/[0-9]{4}", res$TimeStart)))
-  expect_true(all(grepl("[0-9]{2}/[0-9]{2}/[0-9]{4}", res$TimeEnd)))
+  expect_true(all(grepl("^[0-9]{2}/[0-9]{2}/[0-9]{4}$", res$TimeStart)))
+  expect_true(all(grepl("^[0-9]{2}/[0-9]{2}/[0-9]{4}$", res$TimeEnd)))
+
+  # The new API returns integer years, synthesized to 01/01/<year>
+  expect_true(all(grepl("^01/01/[0-9]{4}$", res$TimeStart)))
+  expect_true(all(grepl("^01/01/[0-9]{4}$", res$TimeEnd)))
 }
 
-## TODO: This is failing due to the new unpd server. Fix this once
-## Kyaw Kyaw does the correct migration.
-## test_that("get_recorddata transforms TimeStart/TimeEnd to Date objects with DD/MM/YYYY formats", {
-##   res <- get_recorddata(dataProcessTypeIds = 9, # Register
-##                         startYear = 1920,
-##                         endYear = 2020,
-##                         indicatorTypeIds = 14, # Births by sex
-##                         isComplete = 2, # Total
-##                         locIds = 28, # Antigua and Barbuda
-##                         locAreaTypeIds = 2, # Whole area
-##                         subGroupIds = 2) # Total
-##   validate_date(res)
-## })
+test_that("get_recorddata transforms TimeStart/TimeEnd to DD/MM/YYYY (01/01/YYYY)", {
+  res <- get_recorddata(dataProcessTypeIds = 9, # Register
+                        startYear = 1920,
+                        endYear = 2020,
+                        indicatorTypeIds = 14, # Births by sex
+                        isComplete = 2, # Total
+                        locIds = 28, # Antigua and Barbuda
+                        locAreaTypeIds = 2, # Whole area
+                        subGroupIds = 2) # Total
+  validate_date(res)
+})
 
 
 test_that("get_recorddata and get_recorddataadditional transform Name columns to labels", {

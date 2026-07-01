@@ -112,8 +112,21 @@ linkGenerator <- function(server = getOption("unpd_server", "https://population.
 
   idx <- match.arg(tolower(type), choices = tolower(types))
   type <- types[match(idx, tolower(types))] # emit canonical camelCase route
-  query <- build_filter(..., verbose = verbose)
-  link <- utils::URLencode(paste0(server, type, query))
+
+  # The new DemoData API resolves record IDs through the PATH segment
+  # (`structuredDataRecords/{ids}`) rather than the legacy `?ids=` query
+  # parameter, so pull `ids` out of the filter args and append it to the path.
+  dots <- list(...)
+  ids <- dots[["ids"]]
+  dots[["ids"]] <- NULL
+
+  path <- type
+  if (!is.null(ids)) {
+    path <- paste0(type, "/", paste(ids, collapse = ","))
+  }
+
+  query <- do.call(build_filter, c(dots, list(verbose = verbose)))
+  link <- utils::URLencode(paste0(server, path, query))
   link
 }
 
@@ -180,6 +193,19 @@ normalize_fields <- function(data, type = NULL) {
     idx <- match(names(data), names(explicit_map))
     has_map <- !is.na(idx)
     names(data)[has_map] <- unname(explicit_map[idx[has_map]])
+  }
+
+  # The legacy records payload carried three columns the new API no longer
+  # returns (`agesort`, `id`, `FootNoteID`). Downstream `col_order` selection in
+  # get_recorddata()/get_recorddataadditional() expects the full vocabulary, so
+  # reconstruct any missing `col_order` column as NA on the records endpoints to
+  # preserve the column contract (and the exact colnames(res) == col_order tests).
+  if (!is.null(type) &&
+    tolower(type) %in% c("structureddatarecords", "structureddatarecordsadditional")) {
+    missing_cols <- setdiff(values_env$col_order, names(data))
+    for (mc in missing_cols) {
+      data[[mc]] <- NA
+    }
   }
 
   data
@@ -254,6 +280,46 @@ normalize_map <- function(type = NULL) {
 
   if (key %in% names(ref_maps)) {
     return(ref_maps[[key]])
+  }
+
+  # Records endpoints. Unlike the reference tables above, the records payload
+  # uses NON-`PK_` foreign keys, so the generically-capitalized camelCase names
+  # map straight onto the `col_order` / `id_to_fact` PascalCase vocabulary, with
+  # the only systematic difference being `Id` -> `ID` casing (plus `Id2` ->
+  # `ID2`, `Id1` -> `ID1`). Source of truth: Surya's docx sections 2.11 / 2.12.
+  records_map <- c(
+    StructuredDataId = "StructuredDataID",
+    DataCatalogId = "DataCatalogID",
+    LocTypeId = "LocTypeID",
+    LocId = "LocID",
+    RegId = "RegID",
+    AreaId = "AreaID",
+    LocAreaTypeId = "LocAreaTypeID",
+    SubGroupTypeId = "SubGroupTypeID",
+    SubGroupId1 = "SubGroupID1",
+    SubGroupCombinationId = "SubGroupCombinationID",
+    IndicatorId = "IndicatorID",
+    DataProcessTypeId = "DataProcessTypeID",
+    DataProcessId = "DataProcessID",
+    DataSourceId = "DataSourceID",
+    DataStatusId = "DataStatusID",
+    StatisticalConceptId = "StatisticalConceptID",
+    SexId = "SexID",
+    AgeId = "AgeID",
+    DataTypeGroupId = "DataTypeGroupID",
+    DataTypeGroupId2 = "DataTypeGroupID2",
+    DataTypeId = "DataTypeID",
+    ModelPatternFamilyId = "ModelPatternFamilyID",
+    ModelPatternId = "ModelPatternID",
+    DataReliabilityId = "DataReliabilityID",
+    PeriodTypeId = "PeriodTypeID",
+    PeriodGroupId = "PeriodGroupID",
+    TimeReferenceId = "TimeReferenceID",
+    SeriesId = "SeriesID"
+  )
+
+  if (key %in% c("structureddatarecords", "structureddatarecordsadditional")) {
+    return(records_map)
   }
 
   empty
@@ -563,11 +629,10 @@ lookupDataProcessTypeIds <- function(paramStr, paramList) {
   }
   paramStr_low <- tolower(paramStr)
 
-  inds <- get_dataprocesstype(
-    locIds = paramList[["locIds"]],
-    indicatorTypeIds = paramList[["indicatorTypeIds"]],
-    isComplete = paramList[["isComplete"]]
-  )
+  # The new DemoData API's `dataProcessTypes` endpoint returns an empty set when
+  # the loc/indicator/isComplete filters are supplied, so fetch the full
+  # (small, static) reference table and resolve the string against it.
+  inds <- get_dataprocesstype()
 
   inds_code <- inds[tolower(inds$Name) %in% paramStr_low, ]
   # The all statement is in case you provide 2 area types, for example

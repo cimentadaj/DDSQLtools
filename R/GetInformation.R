@@ -753,7 +753,8 @@ read_API <- function(type, save_file, verbose = FALSE, ...) {
 }
 
 chr_to_date <- function(x) {
-  x <- gsub("T.+$", "", x)
-  x <- format(as.Date(x, format = "%F"), format = "%d/%m/%Y")
-  x
+  # The new DemoData API returns TimeStart/TimeEnd as integer years (e.g. 1960).
+  # Pin them to the 1st of January and keep the character DD/MM/YYYY contract
+  # the downstream DemoTools workflows and tests expect.
+  paste0("01/01/", x)
 }
