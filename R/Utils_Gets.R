@@ -148,8 +148,8 @@ normalize_fields <- function(data, type = NULL) {
   }
 
   # Generic path: capitalize the leading character of each (dot-separated
-  # segment of each) field name. Explicit per-endpoint maps are added in
-  # later phases and take precedence over this generic transform.
+  # segment of each) field name. Explicit per-endpoint maps below take
+  # precedence over this generic transform.
   cap_lead <- function(nm) {
     parts <- strsplit(nm, ".", fixed = TRUE)[[1]]
     parts <- vapply(
@@ -167,7 +167,82 @@ normalize_fields <- function(data, type = NULL) {
   }
 
   names(data) <- vapply(names(data), cap_lead, character(1))
+
+  # Endpoint-aware explicit renames. The generic path above has already
+  # capitalized the leading character, so the keys here are the
+  # already-capitalized names as they appear after that transform
+  # (e.g. camelCase `locId` -> `LocId` -> mapped to `PK_LocID`). These
+  # reconstruct the legacy `PK_`-prefixed primary keys and preserve `ID`
+  # capitalization the downstream lookup helpers depend on.
+  explicit_map <- normalize_map(type)
+
+  if (length(explicit_map) > 0) {
+    idx <- match(names(data), names(explicit_map))
+    has_map <- !is.na(idx)
+    names(data)[has_map] <- unname(explicit_map[idx[has_map]])
+  }
+
   data
+}
+
+
+#' Per-endpoint field rename maps for \code{\link{normalize_fields}}
+#'
+#' Returns a named character vector mapping the generically-capitalized field
+#' name (the value produced by the leading-character-capitalization step in
+#' \code{\link{normalize_fields}}) to the exact legacy vocabulary name the
+#' downstream code expects. The map is keyed on the (case-insensitive) endpoint
+#' \code{type}. Reference/lookup endpoints reconstruct the \code{PK_}-prefixed
+#' primary keys; records endpoints (Phase 4) use non-\code{PK_} foreign keys.
+#'
+#' @param type The endpoint route the data came from (case-insensitive).
+#'
+#' @return A named character vector (\code{after-generic -> legacy name}), or
+#' an empty character vector when no explicit remapping is required.
+#'
+#' @keywords internal
+normalize_map <- function(type = NULL) {
+  empty <- character(0)
+
+  if (is.null(type) || length(type) == 0 || is.na(type)) {
+    return(empty)
+  }
+
+  key <- tolower(type)
+
+  # Reference / lookup endpoints. The generic capitalization turns camelCase
+  # `locId` into `LocId`; here we map that to the legacy `PK_LocID` (and fix
+  # the `ID` casing) so lookup helpers keep finding their primary-key column.
+  ref_maps <- list(
+    locations = c(
+      LocId = "PK_LocID"
+    ),
+    indicatortypes = c(
+      IndicatorTypeId = "PK_IndicatorTypeID"
+    ),
+    subgroups = c(
+      SubGroupId = "PK_SubGroupID"
+    ),
+    locareatypes = c(
+      LocAreaTypeId = "PK_LocAreaTypeID"
+    ),
+    dataprocesstypes = c(
+      DataProcessTypeId = "PK_DataProcessTypeID"
+    ),
+    dataprocesses = c(
+      DataProcessId = "PK_DataProcessID"
+    ),
+    datatypes = c(
+      DataTypeGroupId = "DataTypeGroupID",
+      DataTypeGroupId2 = "DataTypeGroupID2"
+    )
+  )
+
+  if (key %in% names(ref_maps)) {
+    return(ref_maps[[key]])
+  }
+
+  empty
 }
 
 

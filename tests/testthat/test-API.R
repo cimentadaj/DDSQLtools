@@ -83,9 +83,29 @@ I <- get_indicators(addDefault = "false")
 validate_read_API(I) # validate
 
 # ------------------------------------------
-## TODO: Fix this test
-## I <- get_datasources()
-## validate_read_API(I)  # validate
+I <- get_datasources()
+validate_read_API(I) # validate
+
+# ------------------------------------------
+DT <- get_datatypes()
+validate_read_API(DT) # validate
+
+# ------------------------------------------
+DP <- get_dataprocess()
+validate_read_API(DP) # validate
+
+# ------------------------------------------
+test_that("reference endpoints reconstruct their PK_ primary-key columns", {
+  expect_true("PK_LocID" %in% names(get_locations()))
+  expect_true("PK_IndicatorTypeID" %in% names(get_indicatortypes()))
+  expect_true("PK_SubGroupID" %in% names(get_subgroups(
+    indicatorTypeIds = 8,
+    locIds = 818,
+    isComplete = 0
+  )))
+  expect_true("PK_DataProcessTypeID" %in% names(get_dataprocesstype()))
+  expect_true("PK_DataProcessID" %in% names(get_dataprocess()))
+})
 
 # ------------------------------------------
 G <- get_seriesdata(
@@ -114,9 +134,9 @@ test_that("get_iitypes can subset correctly", {
     indicatorTypeIds = 38,
     indicatorIds = 323
   )
-  expect_equal(unique(x[["IndicatorType.ComponentID"]]), 4)
-  expect_equal(unique(x[["IndicatorType.PK_IndicatorTypeID"]]), 38)
-  expect_equal(unique(x[["PK_IndicatorID"]]), 323)
+  expect_equal(unique(x[["IndicatorTypeComponentId"]]), 4)
+  expect_equal(unique(x[["IndicatorTypeId"]]), 38)
+  expect_true(323 %in% x[["IndicatorId"]])
 })
 
 
