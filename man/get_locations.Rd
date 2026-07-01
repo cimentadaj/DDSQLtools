@@ -15,7 +15,7 @@ accept a numeric code which is interpreted as the code of the specific
 product requested. Alternatively, you can supply the equivalent product
 name as a string which is case insensitive (see examples). Handle with
 care, this is important! For a list of all options available, see the
-parameters for each endpoint at https://popdiv.dfs.un.org/Demodata/swagger/ui/index#/}
+parameters for each endpoint at https://population.un.org/demodata-api/swagger/index.html}
 }
 \description{
 Get information about available locations (LocID)
@@ -23,7 +23,6 @@ Get information about available locations (LocID)
 \examples{
 \dontrun{
 L <- get_locations(
-  addDefault = "false",
   includeDependencies = "false",
   includeFormerCountries = "false"
 )

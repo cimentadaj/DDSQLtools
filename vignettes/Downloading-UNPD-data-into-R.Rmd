@@ -118,7 +118,7 @@ By default, the results from `get_recorddata` exclude any uncertainty columns su
 
 #### Additional queries with dataTypeGroupIds and dataTypeGroupId2s
 
-`get_recorddataadditional` allows to use additional arguments such as `dataTypeGroupIds` and `dataTypeGroupId2s`.For a list of all arguments you can use, see [here](https://popdiv.dfs.un.org/Demodata/swagger/ui/index#!/StructuredData/StructuredData_GetStructuredDataRecordsAdditional).  For example:
+`get_recorddataadditional` allows to use additional arguments such as `dataTypeGroupIds` and `dataTypeGroupId2s`.For a list of all arguments you can use, see [here](https://population.un.org/demodata-api/swagger/index.html).  For example:
 
 ```{r, eval = FALSE}
 
@@ -150,12 +150,12 @@ dt <-
 
 #### Change the IP of the UNPD SQL API
 
-Currently the IP of the server is automatically set (to `https://popdiv.dfs.un.org/DemoData/api/`) but can be changed simply by adding `options(unpd_server = "your server")` to the beginning of your script:
+Currently the IP of the server is automatically set (to `https://population.un.org/demodata-api/api/`) but can be changed simply by adding `options(unpd_server = "your server")` to the beginning of your script:
 
 ```{r, eval = FALSE}
 # Change this to the desired server. This is the server
 # which is set by default.
-options(unpd_server = "https://popdiv.dfs.un.org/DemoData/api/")
+options(unpd_server = "https://population.un.org/demodata-api/api/")
 
 get_recorddata(dataProcessTypeIds = "Register",
                indicatorTypeIds = "Deaths by age and sex",
@@ -380,13 +380,11 @@ get_recorddata(dataProcessTypeIds = "Register",
 
 This error is just saying that the combination of data that you've specified is not available (in this case, `Semi-rural` is not available for register data on deaths by age and sex in `Oman` for all groups abridged). 
 
-Figuring out which specific set of values returns what the user want is a tedious process. If the user doesn't know the specific combination of values by memory, the most optimal strategy that we advise is to explore the available values in the [front end of the API](http://24.239.36.16:9654/un3/Web/index.html) and then use these in the request.
+Figuring out which specific set of values returns what the user want is a tedious process. If the user doesn't know the specific combination of values by memory, the most optimal strategy that we advise is to explore the available values in the [API documentation](https://population.un.org/demodata-api/swagger/index.html) or, from within R, with the reference helpers such as `get_locationtypes` and `get_subgroups`, and then use these in the request.
 
-Let's do one example. Follow the hyperlink and click on `"Get Started - Select Indicator & Country"`. Then select `"Deaths by age and sex"` -> `"Oman"`. All possible data sets for `Oman` and `"Deaths by age and sex"` will appear automatically. We can filter down the options in the left-most menu and use these values to populate our `get_recorddata` call.
+For example, `get_locationtypes` and `get_subgroups` (restricted to the same indicator and country) list which `locAreaTypeIds` and `subGroupIds` are available for a given combination. In the example above, `"Semi-rural"` is not among the location types returned for register data on deaths by age and sex in `Oman`, which is why the request errors.
 
-Looking at the possible values of `"Type of location"`, only `"Whole area"` is available. This means that we can't specify `"Semi-rural"` (as we saw in the example above). Looking at `"Type of subgroup"`, the only available group is `Total or All groups`, meaning that we can't specify `"Christian Orthodox"` either.
-
-Using this strategy is much easier and less time consuming that trying out different values.
+Using these helpers to inspect the available values is much easier and less time consuming than trying out different values.
 
 ## Exploring indicators
 

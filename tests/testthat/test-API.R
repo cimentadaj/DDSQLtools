@@ -1,4 +1,13 @@
+# These tests hit the live UN DemoData API. Guard every networked block with
+# skip_on_cran() (never run on CRAN) and skip_if_offline() (skip when the host
+# is unreachable) so an external-server outage does not fail CI.
+skip_if_no_api <- function() {
+  testthat::skip_on_cran()
+  testthat::skip_if_offline("population.un.org")
+}
+
 test_that("The linkGenerator() works fine", {
+  skip_if_no_api()
   L <- linkGenerator(
     type = "structureddatarecords",
     locIds = 4,
@@ -12,12 +21,17 @@ test_that("The linkGenerator() works fine", {
   expect_error(linkGenerator(wrong_argument = 1)) # 3. Does not work with whatever argument in "...";
   expect_error(linkGenerator(type = "countryy")) # 4. Is sensitive to typos;
   expect_equal(length(strsplit(L, split = " ")[[1]]), 1) # 5. Expect no spaces in the string.
+
+  # Emits the new base URL and the canonical camelCase route.
+  expect_match(L, "population.un.org/demodata-api/api/", fixed = TRUE)
+  expect_match(L, "structuredDataRecords", fixed = TRUE)
 })
 
 
 ## Test API functions
 validate_read_API <- function(Z) {
   test_that("The read_API works fine", {
+    skip_if_no_api()
     expect_output(print(Z)) # 1. Always expect an output;
     expect_true(is.data.frame(Z)) # 2. The output is of the class "data.frame";
     expect_true(ncol(Z) >= 2) # 3. The output has al least 2 columns;
@@ -28,74 +42,227 @@ validate_read_API <- function(Z) {
 
 validate_recordddata <- function(x) {
   validate_read_API(x) # validate
-  # Test there aren't any NA in DataCatalogID
-  expect_true(!any(is.na(x$DataCatalogID)))
+  test_that("record data has no NA in DataCatalogID", {
+    skip_if_no_api()
+    # Test there aren't any NA in DataCatalogID
+    expect_true(!any(is.na(x$DataCatalogID)))
+  })
 }
 
-# ------------------------------------------
-D <- get_dataprocesstype()
-validate_read_API(D) # validate
+# The networked fetches below run at file-source time, i.e. outside any
+# test_that() block, so a network failure there would error the whole file
+# instead of skipping. Wrap them in a single guarded block that assigns the
+# shared objects to the enclosing environment so the later test blocks can
+# still reference them; on skip the objects stay NULL and their (also guarded)
+# assertions skip too.
+D <- NULL
+D_datacatalog <- NULL
+D_datacatalog_sub <- NULL
+D_datacatalog_nat <- NULL
+S <- NULL
+L <- NULL
+P <- NULL
+IT <- NULL
+II <- NULL
+I <- NULL
+DS <- NULL
+DT <- NULL
+DP <- NULL
+G <- NULL
+X <- NULL
+Y <- NULL
+mixed <- NULL
+mixed_dataid <- NULL
+mixed_codes <- NULL
+add_chr <- NULL
+add_num <- NULL
+add_chr2 <- NULL
+add_num2 <- NULL
+res_extract <- NULL
+
+test_that("live reference and record endpoints fetch without error", {
+  skip_if_no_api()
+
+  # ---- Reference endpoints (one live call per accessor) ----
+  D <<- get_dataprocesstype()
+
+  D_datacatalog <<- get_datacatalog()
+  D_datacatalog_sub <<- get_datacatalog(isSubnational = TRUE)
+  D_datacatalog_nat <<- get_datacatalog(isSubnational = FALSE)
+
+  S <<- get_subgroups(
+    indicatorTypeIds = 8, # Population by age and sex indicator;
+    locIds = 818, # Egypt
+    isComplete = 0
+  )
+
+  L <<- get_locations(
+    includeDependencies = "false",
+    includeFormerCountries = "false"
+  )
+
+  P <<- get_locationtypes(
+    indicatorTypeIds = 8,
+    locIds = 818,
+    isComplete = 0
+  )
+
+  IT <<- get_indicatortypes()
+  II <<- get_iitypes()
+  I <<- get_indicators()
+  DS <<- get_datasources()
+  DT <<- get_datatypes()
+  DP <<- get_dataprocess()
+
+  G <<- get_seriesdata(
+    dataProcessTypeIds = 2,
+    indicatorTypeIds = 8,
+    isComplete = 0,
+    locIds = 4,
+    locAreaTypeIds = 2,
+    startYear = 1950,
+    subGroupIds = 2
+  )
+
+  # ---- Record endpoints ----
+  X <<- get_recorddata(
+    dataProcessTypeIds = 2, # Census
+    indicatorTypeIds = 8, # Population by age and sex - abridged
+    locIds = 818, # Egypt
+    locAreaTypeIds = 2, # Whole area
+    subGroupIds = 2, # Total or All groups
+    isComplete = 0
+  ) # Age Distribution: Abridged
+
+  # Check whether it successfully accepts strings rather than codes
+  Y <<- get_recorddata(
+    dataProcessTypeIds = "Census",
+    indicatorTypeIds = "Population by age and sex",
+    locIds = "Egypt",
+    locAreaTypeIds = "Whole area",
+    subGroupIds = "Total or All groups",
+    isComplete = "Abridged"
+  )
+
+  # Check whether it successfully accepts mixed cases
+  mixed <<- get_recorddata(
+    dataProcessTypeIds = "census",
+    indicatorTypeIds = "population by age and sex",
+    locIds = "egypt",
+    locAreaTypeIds = "Whole area",
+    subGroupIds = "Total or All groups",
+    isComplete = "Abridged"
+  )
+
+  # Check whether we can translate with dataProcessIds
+  mixed_dataid <<- get_recorddata(
+    dataProcessIds = "Population and Housing Census",
+    startYear = 1920,
+    endYear = 2020,
+    indicatorIds = 58,
+    isComplete = 0,
+    locIds = 4,
+    locAreaTypeIds = 2,
+    subGroupIds = 2
+  )
+
+  # mixed with codes
+  mixed_codes <<- get_recorddata(
+    dataProcessTypeIds = 2, # Census
+    indicatorTypeIds = 8, # Population by age and sex - abridged
+    locIds = 818, # Egypt
+    locAreaTypeIds = "Whole area", # Whole area
+    subGroupIds = "Total or All groups", # Total or All groups
+    isComplete = "Abridged"
+  )
+
+  ## For dataTypeGroupIds - translate the string
+  add_chr <<- get_recorddataadditional(
+    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
+    dataTypeGroupIds = "Direct",
+    indicatorTypeIds = 8,
+    isComplete = 0,
+    locIds = 818,
+    locAreaTypeIds = 2,
+    subGroupIds = 2
+  )
+
+  ## For dataTypeGroupIds - with an id
+  add_num <<- get_recorddataadditional(
+    dataProcessTypeIds = 2,
+    dataTypeGroupIds = 3,
+    indicatorTypeIds = 8,
+    isComplete = 0,
+    locIds = 818,
+    locAreaTypeIds = 2,
+    subGroupIds = 2
+  )
+
+  ## For dataTypeGroupId2s - translate the string
+  add_chr2 <<- get_recorddataadditional(
+    dataProcessTypeIds = 2,
+    dataTypeGroupId2s = "Population (sample tabulation)",
+    indicatorTypeIds = 8,
+    isComplete = 0,
+    locIds = 818,
+    locAreaTypeIds = 2,
+    subGroupIds = 2
+  )
+
+  ## For dataTypeGroupId2s - with an id
+  add_num2 <<- get_recorddataadditional(
+    dataProcessTypeIds = 2,
+    dataTypeGroupId2s = 11,
+    indicatorTypeIds = 8,
+    isComplete = 0,
+    locIds = 818,
+    locAreaTypeIds = 2,
+    subGroupIds = 2
+  )
+
+  res_extract <<- extract_data("183578537")
+
+  succeed()
+})
 
 # ------------------------------------------
-D <- get_datacatalog()
-validate_read_API(D) # validate
+# Per-accessor validation. Each block is guarded via validate_read_API()'s
+# internal skip_if_no_api(); when the fetch above skipped the object is NULL and
+# these blocks skip as well.
 
-D <- get_datacatalog(isSubnational = TRUE)
-validate_read_API(D) # validate
+validate_read_API(D) # get_dataprocesstype
 
-D <- get_datacatalog(isSubnational = FALSE)
-validate_read_API(D) # validate
+validate_recordddata(D_datacatalog) # get_datacatalog
+validate_recordddata(D_datacatalog_sub) # get_datacatalog(isSubnational = TRUE)
+validate_recordddata(D_datacatalog_nat) # get_datacatalog(isSubnational = FALSE)
 
-# ------------------------------------------
-S <- get_subgroups(
-  indicatorTypeIds = 8, # Population by age and sex indicator;
-  locIds = 818, # Egypt
-  isComplete = 0
-)
-validate_read_API(S) # validate
+validate_read_API(S) # get_subgroups
+validate_read_API(L) # get_locations
+validate_read_API(P) # get_locationtypes
+validate_read_API(IT) # get_indicatortypes
+validate_read_API(II) # get_iitypes
+validate_read_API(I) # get_indicators
+validate_read_API(DS) # get_datasources
+validate_read_API(DT) # get_datatypes
+validate_read_API(DP) # get_dataprocess
+validate_read_API(G) # get_seriesdata
 
-# ------------------------------------------
-L <- get_locations(
-  addDefault = "false",
-  includeDependencies = "false",
-  includeFormerCountries = "false"
-)
-validate_read_API(L) # validate
+validate_recordddata(X) # get_recorddata (codes)
+validate_recordddata(Y) # get_recorddata (strings)
+validate_recordddata(mixed) # get_recorddata (mixed case)
+validate_recordddata(mixed_dataid) # get_recorddata (dataProcessIds)
+validate_recordddata(mixed_codes) # get_recorddata (mixed codes/strings)
 
-# ------------------------------------------
-P <- get_locationtypes(
-  indicatorTypeIds = 8,
-  locIds = 818,
-  isComplete = 0
-)
-validate_read_API(P) # validate
+validate_recordddata(add_chr) # get_recorddataadditional (dataTypeGroupIds string)
+validate_recordddata(add_num) # get_recorddataadditional (dataTypeGroupIds id)
+validate_recordddata(add_chr2) # get_recorddataadditional (dataTypeGroupId2s string)
+validate_recordddata(add_num2) # get_recorddataadditional (dataTypeGroupId2s id)
 
-# ------------------------------------------
-IT <- get_indicatortypes(addDefault = "false")
-validate_read_API(IT) # validate
-
-# ------------------------------------------
-IT <- get_iitypes(addDefault = "false")
-validate_read_API(IT) # validate
-
-# ------------------------------------------
-I <- get_indicators(addDefault = "false")
-validate_read_API(I) # validate
-
-# ------------------------------------------
-I <- get_datasources()
-validate_read_API(I) # validate
-
-# ------------------------------------------
-DT <- get_datatypes()
-validate_read_API(DT) # validate
-
-# ------------------------------------------
-DP <- get_dataprocess()
-validate_read_API(DP) # validate
+validate_read_API(res_extract) # extract_data
 
 # ------------------------------------------
 test_that("reference endpoints reconstruct their PK_ primary-key columns", {
+  skip_if_no_api()
   expect_true("PK_LocID" %in% names(get_locations()))
   expect_true("PK_IndicatorTypeID" %in% names(get_indicatortypes()))
   expect_true("PK_SubGroupID" %in% names(get_subgroups(
@@ -108,21 +275,16 @@ test_that("reference endpoints reconstruct their PK_ primary-key columns", {
 })
 
 # ------------------------------------------
-G <- get_seriesdata(
-  dataProcessTypeIds = 2,
-  indicatorTypeIds = 8,
-  isComplete = 0,
-  locIds = 4,
-  locAreaTypeIds = 2,
-  startYear = 1950,
-  subGroupIds = 2
-)
-
-validate_read_API(G) # validate
+test_that("get_datacatalog joins reference tables and has non-NA DataCatalogID", {
+  skip_if_no_api()
+  cat <- get_datacatalog()
+  expect_false(any(is.na(cat$DataCatalogID)))
+  expect_true(all(c("LocName", "ShortName", "ReferenceYearStart") %in% names(cat)))
+})
 
 # ------------------------------------------
-
 test_that("get_iitypes can subset correctly", {
+  skip_if_no_api()
   # No need to test each argument separately
   # otherwise the tests run the risk of running for
   # longer and longer.
@@ -141,145 +303,12 @@ test_that("get_iitypes can subset correctly", {
 
 
 # ------------------------------------------
-X <- get_recorddata(
-  dataProcessTypeIds = 2, # Census
-  indicatorTypeIds = 8, # Population by age and sex - abridged
-  locIds = 818, # Egypt
-  locAreaTypeIds = 2, # Whole area
-  subGroupIds = 2, # Total or All groups
-  isComplete = 0
-) # Age Distribution: Abridged
-
-validate_recordddata(X) # validate
-
-# Check whether it successfully accepts strings rather than codes
-Y <- get_recorddata(
-  dataProcessTypeIds = "Census", # Estimate
-  indicatorTypeIds = "Population by age and sex", # Population by age and sex - abridged
-  locIds = "Egypt", # Egypt
-  locAreaTypeIds = "Whole area", # Whole area
-  subGroupIds = "Total or All groups", # Total or All groups
-  isComplete = "Abridged"
-) # Age Distribution: Abridged
-
-validate_recordddata(Y)
-
-# Check whether it successfully mixed cases
-mixed <- get_recorddata(
-  dataProcessTypeIds = "census", # Estimate
-  indicatorTypeIds = "population by age and sex", # Population by age and sex - abridged
-  locIds = "egypt", # Egypt
-  locAreaTypeIds = "Whole area", # Whole area
-  subGroupIds = "Total or All groups", # Total or All groups
-  isComplete = "Abridged"
-) # Age Distribution: Abridged
-
-validate_recordddata(mixed) # validate
-
-# Check whether we can translate with dataProcessIds
-mixed_dataid <- get_recorddata(
-  dataProcessIds = "Population and Housing Census",
-  startYear = 1920,
-  endYear = 2020,
-  indicatorIds = 58,
-  isComplete = 0,
-  locIds = 4,
-  locAreaTypeIds = 2,
-  subGroupIds = 2
-)
-
-validate_recordddata(mixed_dataid) # validate
-
-# mixed with codes
-mixed_codes <- get_recorddata(
-  dataProcessTypeIds = 2, # Census
-  indicatorTypeIds = 8, # Population by age and sex - abridged
-  locIds = 818, # Egypt
-  locAreaTypeIds = "Whole area", # Whole area
-  subGroupIds = "Total or All groups", # Total or All groups
-  isComplete = "Abridged"
-) # Age Distribution: Abridged
-
-validate_recordddata(mixed_codes) # validate
-
-
-## For dataTypeGroupIds
-
-# Check that it translates
-chr_id <-
-  get_recorddataadditional(
-    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
-    dataTypeGroupIds = "Direct",
-    indicatorTypeIds = 8,
-    isComplete = 0,
-    locIds = 818,
-    locAreaTypeIds = 2,
-    subGroupIds = 2
-  )
-
-validate_recordddata(chr_id)
-
-# Check that ti works with an id
-num_id <-
-  get_recorddataadditional(
-    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
-    dataTypeGroupIds = 3,
-    indicatorTypeIds = 8,
-    isComplete = 0,
-    locIds = 818,
-    locAreaTypeIds = 2,
-    subGroupIds = 2
-  )
-
-validate_recordddata(num_id)
-
-## For dataTypeGroupId2s
-
-# Check that it translates
-chr_id <-
-  get_recorddataadditional(
-    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
-    dataTypeGroupId2s = "Population (sample tabulation)",
-    indicatorTypeIds = 8,
-    isComplete = 0,
-    locIds = 818,
-    locAreaTypeIds = 2,
-    subGroupIds = 2
-  )
-
-validate_recordddata(chr_id)
-
-num_id <-
-  get_recorddataadditional(
-    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
-    dataTypeGroupId2s = 11,
-    indicatorTypeIds = 8,
-    isComplete = 0,
-    locIds = 818,
-    locAreaTypeIds = 2,
-    subGroupIds = 2
-  )
-
-validate_recordddata(num_id)
-
-# After changing the unpd server
-options(unpd_server = "https://population.un.org/demodata-api/api/")
-
-mixed_codes <- get_recorddata(
-  dataProcessTypeIds = 2, # Census
-  indicatorTypeIds = 8, # Population by age and sex - abridged
-  locIds = 818, # Egypt
-  locAreaTypeIds = "Whole area", # Whole area
-  subGroupIds = "Total or All groups", # Total or All groups
-  isComplete = "Abridged"
-) # Age Distribution: Abridged
-
-validate_recordddata(mixed_codes) # validate
-
-
 test_that("get_recorddata returns error when setting wrong server", {
+  skip_if_no_api()
   # After changing the unpd server
+  old_server <- getOption("unpd_server")
   options(unpd_server = "http://0.0.0.0/")
+  on.exit(options(unpd_server = old_server), add = TRUE)
 
   expect_error(
     suppressWarnings(
@@ -293,27 +322,27 @@ test_that("get_recorddata returns error when setting wrong server", {
       ) # Age Distribution: Abridged
     )
   )
-
-  options(unpd_server = "https://population.un.org/demodata-api/api/")
 })
 
 test_that("get_recorddata with codes gives same output with strings", {
-  X <- X[order(X$StructuredDataID), ]
-  Y <- Y[order(Y$StructuredDataID), ]
-  mixed <- mixed[order(mixed$StructuredDataID), ]
-  mixed_codes <- mixed_codes[order(mixed_codes$StructuredDataID), ]
+  skip_if_no_api()
+  Xo <- X[order(X$StructuredDataID), ]
+  Yo <- Y[order(Y$StructuredDataID), ]
+  mixedo <- mixed[order(mixed$StructuredDataID), ]
+  mixed_codeso <- mixed_codes[order(mixed_codes$StructuredDataID), ]
 
-  row.names(X) <- NULL
-  row.names(Y) <- NULL
-  row.names(mixed) <- NULL
-  row.names(mixed_codes) <- NULL
+  row.names(Xo) <- NULL
+  row.names(Yo) <- NULL
+  row.names(mixedo) <- NULL
+  row.names(mixed_codeso) <- NULL
 
-  expect_equal(X, Y)
-  expect_equal(X, mixed)
-  expect_equal(X, mixed_codes)
+  expect_equal(Xo, Yo)
+  expect_equal(Xo, mixedo)
+  expect_equal(Xo, mixed_codeso)
 })
 
 
+# Called from within a test_that() block, so it does not open its own.
 validate_date <- function(res) {
   expect_type(res$TimeStart, "character")
   expect_type(res$TimeEnd, "character")
@@ -334,6 +363,7 @@ validate_date <- function(res) {
 }
 
 test_that("get_recorddata transforms TimeStart/TimeEnd to DD/MM/YYYY (01/01/YYYY)", {
+  skip_if_no_api()
   res <- get_recorddata(dataProcessTypeIds = 9, # Register
                         startYear = 1920,
                         endYear = 2020,
@@ -347,6 +377,7 @@ test_that("get_recorddata transforms TimeStart/TimeEnd to DD/MM/YYYY (01/01/YYYY
 
 
 test_that("get_recorddata and get_recorddataadditional transform Name columns to labels", {
+  skip_if_no_api()
   res <- get_recorddata(
     dataProcessTypeIds = 2, # Census
     indicatorTypeIds = 8, # Population by age and sex - abridged
@@ -395,7 +426,7 @@ test_that("get_recorddata and get_recorddataadditional transform Name columns to
 })
 
 test_that("get_recorddata and get_recorddataadditional keep the correct columns when collapse_id_name is set to different values", {
-
+  skip_if_no_api()
 
   collapse_opts <- c(TRUE, FALSE)
   cols_available <-
@@ -436,6 +467,7 @@ test_that("get_recorddata and get_recorddataadditional keep the correct columns 
 
 
 test_that("Looking up wrong input throws errors in get_recorddata", {
+  skip_if_no_api()
   expect_error(get_recorddata(locIds = "Wrong country"),
     regexp = "Location(s) 'Wrong country' not found. Check get_locations()",
     fixed = TRUE
@@ -457,56 +489,20 @@ test_that("Looking up wrong input throws errors in get_recorddata", {
   )
 })
 
-ids <- "183578537"
-res <- extract_data(ids)
-validate_read_API(res)
-
-## TODO: Fix this
-## test_that("extract_data returns the correct data when link is too long", {
-##   test_res <- function(res, ids) {
-##     all(
-##       all(ids %in% res$StructuredDataID),
-##       nrow(res) == length(ids),
-##       all(table(res$PK_StructuredDataID) == 1)
-##     )
-##   }
-
-##   tst <- read_API("structureddatacriteria",
-##                   save_file = FALSE,
-##                   locIds = 4, # Afghanistan
-##                   indicatorIds = c(60, 58), # Two indicators
-##                   includeDataIDs = "true"
-##                   )
-
-##   # Try reading different chunks of all codes
-##   # to make sure that the function can handle
-##   # reading different chunks of codes
-##   all_codes <- strsplit(tst$StructuredDataIDs, ",")[[1]]
-##   indices_test <- c(1, 50, 200, 201, 501, length(all_codes))
-##   all_test <-
-##     vapply(indices_test, function(i) {
-##       ids <- all_codes[1:i]
-##       res <- extract_data(ids)
-##       test_res(res, ids)
-##     }, logical(1))
-
-##   expect_true(all(all_test))
-## })
-
-## # The res data frame is resued from above
-## test_that("extract_data correctly formats TimeStart/TimeEnd to format DD/MM/YYYY", {
-##   expect_type(res$TimeStart, "character")
-##   expect_type(res$TimeEnd, "character")
-
-##   # Here I'm testing that days, months and years have 2, 2 and 4
-##   # digits. The total is 8 plus the two slashes. Here we make sure
-##   # that we always have 10 characters.
-##   expect_equal(10, unique(nchar(res$TimeStart)))
-##   expect_equal(10, unique(nchar(res$TimeEnd)))
-## })
+test_that("extract_data returns the requested StructuredDataIDs", {
+  skip_if_no_api()
+  ids <- "183578537"
+  res <- extract_data(ids)
+  expect_true(is.data.frame(res))
+  expect_true(nrow(res) >= 1)
+  expect_true(all(ids %in% as.character(res$StructuredDataID)))
+})
 
 ## TODO: This is failing due to the new unpd server. Fix this once
-## Kyaw Kyaw does the correct migration.
+## Kyaw Kyaw does the correct migration. The new server's default for
+## isComplete could not be verified (omitting it can return 404), so
+## the equality-with-isComplete=2 assertion remains disabled per
+## Open Question 1 in the structure outline.
 ## test_that("isComplete is set to 'Total' by default", {
 ##   myLocations <- 28
 ##   # A request without specifying `isComplete`
@@ -517,7 +513,7 @@ validate_read_API(res)
 ##                            locIds = myLocations,
 ##                            locAreaTypeIds = 2,
 ##                            subGroupIds = 2)
-
+##
 ##   # Same request specifying that it's complete is set to 'Total' (2)
 ##   births_iscomplete <- get_recorddata(dataProcessTypeIds = 9,
 ##                                       startYear = 1920,
@@ -527,12 +523,13 @@ validate_read_API(res)
 ##                                       locIds = myLocations,
 ##                                       locAreaTypeIds = 2,
 ##                                       subGroupIds = 2)
-
+##
 ##   # Both results are the same
 ##   expect_identical(births, births_iscomplete)
 ## })
 
 test_that("get_recorddata grabs uncertainty columns when includeUncertainty = TRUE", {
+  skip_if_no_api()
   uncertainty_cols <- c(
     "HasUncertaintyRecord",
     "StandardErrorValue",
@@ -586,6 +583,16 @@ test_that("get_recorddata grabs uncertainty columns when includeUncertainty = TR
 test_that("Checks that SeriesID is a character vector", {
   # This is due to Patrick's request that this should never be a numeric
   # due to loss of precision when grabbing from fromJSON.
+  skip_if_no_api()
+
+  X <- get_recorddata(
+    dataProcessTypeIds = 2,
+    indicatorTypeIds = 8,
+    locIds = 818,
+    locAreaTypeIds = 2,
+    subGroupIds = 2,
+    isComplete = 0
+  )
 
   expect_type(X$SeriesID, "character")
 })

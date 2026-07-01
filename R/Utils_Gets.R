@@ -1,7 +1,7 @@
 #' API Link Generator Function
 #'
 #' @param server The path to the database. Check if the "unpd_server" option is
-#' is set. If not, defaults to \code{"https://popdiv.dfs.un.org/DemoData/api/"}
+#' is set. If not, defaults to \code{"https://population.un.org/demodata-api/api/"}
 #'
 #' @param type Type of data. Various options are available.
 #'
@@ -16,7 +16,7 @@
 #' product requested. Alternatively, you can supply the equivalent product
 #' name as a string which is case insensitive (see examples). Handle with
 #' care, this is important! For a list of all options available, see the
-#' parameters for each endpoint at https://popdiv.dfs.un.org/Demodata/swagger/ui/index#/
+#' parameters for each endpoint at https://population.un.org/demodata-api/swagger/index.html
 #'
 #' @details The link generator is based on the structure of the database
 #' created by Dennis Butler (in late 2018). To change the server used to make
@@ -33,7 +33,6 @@
 #' # Link to country list
 #' L1 <- linkGenerator(
 #'   type = "locations",
-#'   addDefault = "false",
 #'   includeDependencies = "false",
 #'   includeFormerCountries = "false"
 #' )
@@ -60,8 +59,7 @@
 #'
 #' # Link to indicator list
 #' L4 <- linkGenerator(
-#'   type = "indicators",
-#'   addDefault = "false"
+#'   type = "indicators"
 #' )
 #' L4
 #'
@@ -329,7 +327,7 @@ normalize_map <- function(type = NULL) {
 #' Build the section of the path (link) responsible with filtering the data
 #'
 #' For a description of what each argument represents, see
-#' http://24.239.36.16:9654/un3/swagger/ui/index#!/StructuredData/StructuredData_GetStructuredDataRecords
+#' https://population.un.org/demodata-api/swagger/index.html
 #'
 #' @keywords internal
 build_filter <- function(dataTypeIds = NULL,

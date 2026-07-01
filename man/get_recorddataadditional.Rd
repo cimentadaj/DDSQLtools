@@ -27,7 +27,7 @@ accept a numeric code which is interpreted as the code of the specific
 product requested. Alternatively, you can supply the equivalent product
 name as a string which is case insensitive (see examples). Handle with
 care, this is important! For a list of all options available, see the
-parameters for each endpoint at https://popdiv.dfs.un.org/Demodata/swagger/ui/index#/}
+parameters for each endpoint at https://population.un.org/demodata-api/swagger/index.html}
 }
 \description{
 Download structuredDataRecordsAdditional data from the UNPD portal
@@ -35,7 +35,7 @@ Download structuredDataRecordsAdditional data from the UNPD portal
 \details{
 \code{get_recorddataadditional} directly queries the endpoint
 \code{structuredDataRecordsadditional}. For a list of all options available for this
-endpoint, see the parameters for each endpoint at https://popdiv.dfs.un.org/Demodata/swagger/ui/index#!/StructuredData/StructuredData_GetStructuredDataRecords
+endpoint, see the parameters for each endpoint at https://population.un.org/demodata-api/swagger/index.html
 
 \code{get_recorddataadditional} allows the user to supply string names for all
 arguments that have equivalent \code{get_*} functions. For example,

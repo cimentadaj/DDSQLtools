@@ -59,7 +59,6 @@ extract_data <- function(ids, save_file = FALSE) {
 #' @examples
 #' \dontrun{
 #' L <- get_locations(
-#'   addDefault = "false",
 #'   includeDependencies = "false",
 #'   includeFormerCountries = "false"
 #' )
@@ -114,7 +113,7 @@ get_subgroups <- function(save_file = FALSE, ...) {
 #' @inheritParams read_API
 #' @examples
 #' \dontrun{
-#' I <- get_indicatortypes(addDefault = "false")
+#' I <- get_indicatortypes()
 #' I[, c("PK_IndicatorTypeID", "Name", "ShortName")]
 #' }
 #' @export
@@ -140,7 +139,7 @@ get_datatypes <- function(save_file = FALSE, ...) {
 #' @inheritParams read_API
 #' @examples
 #' \dontrun{
-#' I <- get_indicators(addDefault = "false")
+#' I <- get_indicators()
 #' I[, c("PK_IndicatorTypeID", "Name", "ShortName")]
 #' }
 #' @export
@@ -387,7 +386,7 @@ get_datasources <- function(save_file = FALSE, ...) {
 #'
 #' \code{get_recorddata} directly queries the endpoint
 #' \code{structuredDataRecords}. For a list of all options available for this
-#' endpoint, see the parameters for each endpoint at http://24.239.36.16:9654/un3/swagger/ui/index#!/StructuredData/StructuredData_GetStructuredDataRecords
+#' endpoint, see the parameters for each endpoint at https://population.un.org/demodata-api/swagger/index.html
 #'
 #' \code{get_recorddata} allows the user to supply string names for all
 #' arguments that have equivalent \code{get_*} functions. For example,
@@ -570,7 +569,7 @@ get_recorddata <- function(save_file = FALSE, verbose = TRUE, collapse_id_name =
 #'
 #' \code{get_recorddataadditional} directly queries the endpoint
 #' \code{structuredDataRecordsadditional}. For a list of all options available for this
-#' endpoint, see the parameters for each endpoint at https://popdiv.dfs.un.org/Demodata/swagger/ui/index#!/StructuredData/StructuredData_GetStructuredDataRecords
+#' endpoint, see the parameters for each endpoint at https://population.un.org/demodata-api/swagger/index.html
 #'
 #' \code{get_recorddataadditional} allows the user to supply string names for all
 #' arguments that have equivalent \code{get_*} functions. For example,

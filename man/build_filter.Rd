@@ -38,6 +38,6 @@ build_filter(
 }
 \description{
 For a description of what each argument represents, see
-http://24.239.36.16:9654/un3/swagger/ui/index#!/StructuredData/StructuredData_GetStructuredDataRecords
+https://population.un.org/demodata-api/swagger/index.html
 }
 \keyword{internal}

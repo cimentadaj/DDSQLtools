@@ -2,8 +2,8 @@
 % Please edit documentation in R/DDSQLtools-package.R
 \docType{package}
 \name{DDSQLtools}
-\alias{DDSQLtools}
 \alias{DDSQLtools-package}
+\alias{DDSQLtools}
 \title{DDSQLtools: Wrappers for DemoTools Functions to Work with UNPD SQL Internal Data Format}
 \description{
 Make the DemoTools package click into the UNPD workflow.
