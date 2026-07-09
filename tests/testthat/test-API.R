@@ -178,7 +178,6 @@ test_that("live reference and record endpoints fetch without error", {
 
   ## For dataTypeGroupIds - translate the string
   add_chr <<- get_recorddataadditional(
-    dataProcessTypeIds = 2, # new API requires a process filter on this endpoint
     dataTypeGroupIds = "Direct",
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -189,7 +188,6 @@ test_that("live reference and record endpoints fetch without error", {
 
   ## For dataTypeGroupIds - with an id
   add_num <<- get_recorddataadditional(
-    dataProcessTypeIds = 2,
     dataTypeGroupIds = 3,
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -200,7 +198,6 @@ test_that("live reference and record endpoints fetch without error", {
 
   ## For dataTypeGroupId2s - translate the string
   add_chr2 <<- get_recorddataadditional(
-    dataProcessTypeIds = 2,
     dataTypeGroupId2s = "Population (sample tabulation)",
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -211,7 +208,6 @@ test_that("live reference and record endpoints fetch without error", {
 
   ## For dataTypeGroupId2s - with an id
   add_num2 <<- get_recorddataadditional(
-    dataProcessTypeIds = 2,
     dataTypeGroupId2s = 11,
     indicatorTypeIds = 8,
     isComplete = 0,
@@ -498,35 +494,37 @@ test_that("extract_data returns the requested StructuredDataIDs", {
   expect_true(all(ids %in% as.character(res$StructuredDataID)))
 })
 
-## TODO: This is failing due to the new unpd server. Fix this once
-## Kyaw Kyaw does the correct migration. The new server's default for
-## isComplete could not be verified (omitting it can return 404), so
-## the equality-with-isComplete=2 assertion remains disabled per
-## Open Question 1 in the structure outline.
-## test_that("isComplete is set to 'Total' by default", {
-##   myLocations <- 28
-##   # A request without specifying `isComplete`
-##   births <- get_recorddata(dataProcessTypeIds = 9,
-##                            startYear = 1920,
-##                            endYear = 2020,
-##                            indicatorTypeIds = 14,
-##                            locIds = myLocations,
-##                            locAreaTypeIds = 2,
-##                            subGroupIds = 2)
-##
-##   # Same request specifying that it's complete is set to 'Total' (2)
-##   births_iscomplete <- get_recorddata(dataProcessTypeIds = 9,
-##                                       startYear = 1920,
-##                                       endYear = 2020,
-##                                       indicatorTypeIds = 14,
-##                                       isComplete = 2,
-##                                       locIds = myLocations,
-##                                       locAreaTypeIds = 2,
-##                                       subGroupIds = 2)
-##
-##   # Both results are the same
-##   expect_identical(births, births_iscomplete)
-## })
+test_that("isComplete is set to 'Total' by default", {
+  skip_if_no_api()
+  myLocations <- 28
+  # A request without specifying `isComplete`
+  births <- get_recorddata(dataProcessTypeIds = 9,
+                           startYear = 1920,
+                           endYear = 2020,
+                           indicatorTypeIds = 14,
+                           locIds = myLocations,
+                           locAreaTypeIds = 2,
+                           subGroupIds = 2)
+
+  # Same request specifying that it's complete is set to 'Total' (2)
+  births_iscomplete <- get_recorddata(dataProcessTypeIds = 9,
+                                      startYear = 1920,
+                                      endYear = 2020,
+                                      indicatorTypeIds = 14,
+                                      isComplete = 2,
+                                      locIds = myLocations,
+                                      locAreaTypeIds = 2,
+                                      subGroupIds = 2)
+
+  # Both results are the same. The server does not guarantee row order,
+  # so compare the records as a set rather than positionally.
+  ord <- function(x) {
+    x <- x[order(x$StructuredDataID), , drop = FALSE]
+    rownames(x) <- NULL
+    x
+  }
+  expect_identical(ord(births), ord(births_iscomplete))
+})
 
 test_that("get_recorddata grabs uncertainty columns when includeUncertainty = TRUE", {
   skip_if_no_api()
