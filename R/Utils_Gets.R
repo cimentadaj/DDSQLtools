@@ -90,7 +90,10 @@ linkGenerator <- function(server = getOption("unpd_server", "https://population.
     "indicatorTypes",
     "indicatorIndicatorTypes",
     "locAreaTypes",
+    "locationTypes",
     "locations",
+    "modelPatterns",
+    "open/ages",
     "periodGroups",
     "periodTypes",
     "sex",
@@ -141,8 +144,9 @@ linkGenerator <- function(server = getOption("unpd_server", "https://population.
 #' The shim is endpoint-aware (keyed on \code{type}) because the same camelCase
 #' field must map differently depending on the endpoint (e.g. \code{locId} becomes
 #' \code{PK_LocID} on reference endpoints but \code{LocID} on records). The
-#' explicit per-endpoint rename maps are filled in later phases; this scaffold
-#' implements the generic leading-character capitalization used as the default.
+#' generic path capitalizes the leading character of each field, the explicit
+#' per-endpoint maps then apply, and finally any remaining trailing \code{Id}
+#' (optionally followed by digits) is rewritten to \code{ID}.
 #'
 #' @param data A \code{data.frame} (the unwrapped \code{$data} element of the API
 #' response envelope).
@@ -192,6 +196,11 @@ normalize_fields <- function(data, type = NULL) {
     has_map <- !is.na(idx)
     names(data)[has_map] <- unname(explicit_map[idx[has_map]])
   }
+
+  # Restore the legacy `ID` casing on every remaining identifier column
+  # (e.g. `DataSourceId` -> `DataSourceID`, `SubGroupId1` -> `SubGroupID1`).
+  # Runs after the explicit maps, whose keys are the `Id` forms.
+  names(data) <- sub("Id([0-9]*)$", "ID\\1", names(data))
 
   # The legacy records payload carried three columns the new API no longer
   # returns (`agesort`, `id`, `FootNoteID`). Downstream `col_order` selection in
@@ -358,6 +367,7 @@ build_filter <- function(dataTypeIds = NULL,
                          includeUncertainty = NULL,
                          isSubnational = NULL,
                          years = NULL,
+                         ageUnit = NULL,
                          verbose) {
 
   # Keep as list because unlisting multiple ids for a single

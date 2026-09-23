@@ -372,6 +372,145 @@ get_datasources <- function(save_file = FALSE, ...) {
   read_API("dataSources", save_file, ...)
 }
 
+#' Get information about available location types (LocTypeID)
+#'
+#' Location types are the geographic levels (World, Region, Country, ...).
+#' Not to be confused with \code{\link{get_locationtypes}}, which returns the
+#' location area types (Whole area, Urban, Rural, ...).
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_loctypes()
+#' }
+#' @export
+get_loctypes <- function(save_file = FALSE, ...) {
+  read_API("locationTypes", save_file, ...)
+}
+
+#' Get information about available sub-group types (SubGroupTypeID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_subgrouptypes()
+#' }
+#' @export
+get_subgrouptypes <- function(save_file = FALSE, ...) {
+  read_API("subGroupTypes", save_file, ...)
+}
+
+#' Get information about available data source statuses (DataSourceStatusID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_datasourcestatus()
+#' }
+#' @export
+get_datasourcestatus <- function(save_file = FALSE, ...) {
+  read_API("dataSourceStatus", save_file, ...)
+}
+
+#' Get information about available data source types (DataSourceTypeID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_datasourcetypes()
+#' }
+#' @export
+get_datasourcetypes <- function(save_file = FALSE, ...) {
+  read_API("dataSourceTypes", save_file, ...)
+}
+
+#' Get information about available data statuses (DataStatusID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_datastatus()
+#' }
+#' @export
+get_datastatus <- function(save_file = FALSE, ...) {
+  read_API("dataStatus", save_file, ...)
+}
+
+#' Get information about available statistical concepts (StatisticalConceptID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_statisticalconcepts()
+#' }
+#' @export
+get_statisticalconcepts <- function(save_file = FALSE, ...) {
+  read_API("statisticalConcepts", save_file, ...)
+}
+
+#' Get information about available sexes (SexID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_sex()
+#' }
+#' @export
+get_sex <- function(save_file = FALSE, ...) {
+  read_API("sex", save_file, ...)
+}
+
+#' Get information about available ages (AgeID)
+#' @inheritParams read_API
+#' @param ageUnit The age unit to return. Either \code{"Year"} (default) or
+#' \code{"Month"}. An unknown unit returns an empty data frame.
+#' @examples
+#' \dontrun{
+#' get_ages()
+#' get_ages(ageUnit = "Month")
+#' }
+#' @export
+get_ages <- function(ageUnit = "Year", save_file = FALSE, ...) {
+  read_API("open/ages", save_file, ageUnit = ageUnit, ...)
+}
+
+#' Get information about available model patterns (ModelPatternID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_modelpatterns()
+#' }
+#' @export
+get_modelpatterns <- function(save_file = FALSE, ...) {
+  read_API("modelPatterns", save_file, ...)
+}
+
+#' Get information about available data reliability levels (DataReliabilityID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_datareliability()
+#' }
+#' @export
+get_datareliability <- function(save_file = FALSE, ...) {
+  read_API("dataReliability", save_file, ...)
+}
+
+#' Get information about available period types (PeriodTypeID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_periodtypes()
+#' }
+#' @export
+get_periodtypes <- function(save_file = FALSE, ...) {
+  read_API("periodTypes", save_file, ...)
+}
+
+#' Get information about available period groups (PeriodGroupID)
+#' @inheritParams read_API
+#' @examples
+#' \dontrun{
+#' get_periodgroups()
+#' }
+#' @export
+get_periodgroups <- function(save_file = FALSE, ...) {
+  read_API("periodGroups", save_file, ...)
+}
+
 
 #' Download structuredDataRecords data from the UNPD portal
 #'
@@ -745,7 +884,7 @@ read_API <- function(type, save_file, verbose = FALSE, ...) {
   out <- format.numeric.colums(out, exceptions = "SeriesID")
 
   if (save_file) {
-    save_in_working_dir(data = out, file_name = paste0("UNPD_", type))
+    save_in_working_dir(data = out, file_name = paste0("UNPD_", gsub("/", "_", type)))
   }
 
   out

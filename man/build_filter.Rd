@@ -33,6 +33,7 @@ build_filter(
   includeUncertainty = NULL,
   isSubnational = NULL,
   years = NULL,
+  ageUnit = NULL,
   verbose
 )
 }

@@ -292,9 +292,9 @@ test_that("get_iitypes can subset correctly", {
     indicatorTypeIds = 38,
     indicatorIds = 323
   )
-  expect_equal(unique(x[["IndicatorTypeComponentId"]]), 4)
-  expect_equal(unique(x[["IndicatorTypeId"]]), 38)
-  expect_true(323 %in% x[["IndicatorId"]])
+  expect_equal(unique(x[["IndicatorTypeComponentID"]]), 4)
+  expect_equal(unique(x[["IndicatorTypeID"]]), 38)
+  expect_true(323 %in% x[["IndicatorID"]])
 })
 
 
@@ -593,4 +593,157 @@ test_that("Checks that SeriesID is a character vector", {
   )
 
   expect_type(X$SeriesID, "character")
+})
+
+# ------------------------------------------
+# Codelist endpoints (locationTypes, sex, ages, ...). Each getter is checked
+# against the exact column contract the live API returns after normalization,
+# so an upstream rename fails loudly here.
+codelists <- list(
+  get_loctypes = list(
+    key = "LocTypeID",
+    cols = c("LocTypeID", "ParentLocTypeID", "Name")
+  ),
+  get_subgrouptypes = list(
+    key = "SubGroupTypeID",
+    cols = c("SubGroupTypeID", "Name", "ShortName", "LongName", "SortOrder", "Description", "IsActive")
+  ),
+  get_datasourcestatus = list(
+    key = "DataSourceStatusID",
+    cols = c("DataSourceStatusID", "Name", "SortOrder", "Description", "IsDefault")
+  ),
+  get_datasourcetypes = list(
+    key = "DataSourceTypeID",
+    cols = c("DataSourceTypeID", "Name", "SortOrder", "Description", "IsDefault")
+  ),
+  get_datastatus = list(
+    key = "DataStatusID",
+    cols = c("DataStatusID", "Name", "ShortName", "SortOrder", "Description", "IsDefault")
+  ),
+  get_statisticalconcepts = list(
+    key = "StatisticalConceptID",
+    cols = c("StatisticalConceptID", "Name", "ShortName", "SortOrder", "Description")
+  ),
+  get_sex = list(
+    key = "SexID",
+    cols = c("SexID", "Name", "ShortName", "LongName", "SortOrder", "Description", "IsActive", "IsDefault")
+  ),
+  get_ages = list(
+    key = "AgeID",
+    cols = c(
+      "AgeID", "AopID", "AgeUnit", "AgeStart", "AgeEnd", "AgeSpan", "AgeMid",
+      "AgeLabel", "AgeLabelExact", "ShortName", "LongName", "SortOrder",
+      "Description", "MortAltLabel", "AgeListID"
+    )
+  ),
+  get_modelpatterns = list(
+    key = "ModelPatternID",
+    cols = c(
+      "ModelPatternID", "ModelPattern", "ModelPatternShortName", "ModelPatternFamilyID",
+      "ModelPatternFamily", "ModelPatternFamilyShortName", "ModelType", "SortOrder"
+    )
+  ),
+  get_datareliability = list(
+    key = "DataReliabilityID",
+    cols = c("DataReliabilityID", "DataReliabilityRankingID", "Name", "SortOrder", "Description", "IsDefault")
+  ),
+  get_periodtypes = list(
+    key = "PeriodTypeID",
+    cols = c("PeriodTypeID", "Name", "SortOrder", "Description", "DateDependent", "AllowMultiple")
+  ),
+  get_periodgroups = list(
+    key = "PeriodGroupID",
+    cols = c(
+      "PeriodGroupID", "PeriodTypeID", "Name", "PeriodStart", "PeriodEnd",
+      "PeriodSpan", "PeriodMiddle", "Weight", "SortOrder", "Description"
+    )
+  )
+)
+
+CL <- list()
+
+test_that("codelist getters return their column contract and a unique key", {
+  skip_if_no_api()
+  for (fn in names(codelists)) {
+    spec <- codelists[[fn]]
+    res <- get(fn)()
+    CL[[fn]] <<- res
+
+    expect_true(is.data.frame(res), info = fn)
+    expect_true(nrow(res) >= 1, info = fn)
+    expect_setequal(names(res), spec$cols)
+    expect_false(any(is.na(res[[spec$key]])), info = fn)
+    expect_false(anyDuplicated(res[[spec$key]]) > 0, info = fn)
+  }
+})
+
+test_that("no get_* function returns a column ending in 'Id'", {
+  skip_if_no_api()
+  outputs <- c(
+    CL,
+    list(
+      get_dataprocesstype = D, get_datacatalog = D_datacatalog,
+      get_subgroups = S, get_locations = L, get_locationtypes = P,
+      get_indicatortypes = IT, get_iitypes = II, get_indicators = I,
+      get_datasources = DS, get_datatypes = DT, get_dataprocess = DP,
+      get_seriesdata = G, get_recorddata = X,
+      get_recorddataadditional = add_num, extract_data = res_extract
+    )
+  )
+  for (fn in names(outputs)) {
+    leaked <- grep("Id[0-9]*$", names(outputs[[fn]]), value = TRUE)
+    expect_equal(leaked, character(0), info = fn)
+  }
+})
+
+test_that("get_datasources returns DataSourceID and LocID", {
+  skip_if_no_api()
+  expect_true(all(c("DataSourceID", "LocID") %in% names(DS)))
+  expect_false(any(c("DataSourceId", "LocId") %in% names(DS)))
+})
+
+test_that("get_ages defaults to years and honours ageUnit", {
+  skip_if_no_api()
+  years <- get_ages()
+  months <- get_ages(ageUnit = "Month")
+  expect_true(all(years$AgeUnit == "Year"))
+  expect_true(all(months$AgeUnit == "Month"))
+  expect_length(intersect(years$AgeID, months$AgeID), 0)
+
+  bogus <- get_ages(ageUnit = "NotAUnit")
+  expect_true(is.data.frame(bogus))
+  expect_equal(nrow(bogus), 0)
+})
+
+test_that("codelist IDs cover the IDs used in real record data", {
+  skip_if_no_api()
+  covers <- function(values, codelist) {
+    values <- unique(values[!is.na(values)])
+    expect_true(length(values) > 0)
+    expect_true(all(values %in% codelist), info = paste(setdiff(values, codelist), collapse = ", "))
+  }
+
+  # Records use SexID 0 ("Unknown"), which the server's sex codelist omits.
+  covers(X$SexID, c(0, CL$get_sex$SexID))
+  # Some records use Month-unit ages (e.g. "< 1"), so check both units.
+  covers(X$AgeID, c(CL$get_ages$AgeID, get_ages(ageUnit = "Month")$AgeID))
+  covers(X$DataStatusID, CL$get_datastatus$DataStatusID)
+  covers(X$StatisticalConceptID, CL$get_statisticalconcepts$StatisticalConceptID)
+  covers(X$DataReliabilityID, CL$get_datareliability$DataReliabilityID)
+  covers(X$PeriodTypeID, CL$get_periodtypes$PeriodTypeID)
+  covers(X$PeriodGroupID, CL$get_periodgroups$PeriodGroupID)
+  covers(X$ModelPatternID, CL$get_modelpatterns$ModelPatternID)
+  covers(X$SubGroupTypeID, CL$get_subgrouptypes$SubGroupTypeID)
+  covers(X$LocTypeID, CL$get_loctypes$LocTypeID)
+  covers(DS$DataSourceTypeID, CL$get_datasourcetypes$DataSourceTypeID)
+  covers(DS$DataSourceStatusID, CL$get_datasourcestatus$DataSourceStatusID)
+})
+
+test_that("save_file = TRUE works for the nested open/ages route", {
+  skip_if_no_api()
+  old <- setwd(tempdir())
+  on.exit(setwd(old))
+  unlink("UNPD_open_ages.Rdata")
+  suppressMessages(capture.output(get_ages(save_file = TRUE)))
+  expect_true(file.exists("UNPD_open_ages.Rdata"))
 })
